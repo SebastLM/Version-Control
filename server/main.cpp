@@ -1,4 +1,4 @@
-#include <iostream>
+#include <unistd.h>
 #include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -81,7 +81,7 @@ TODO: fix write buffer len, can only write as much as i receive
       exit(EXIT_FAILURE);
     }
     
-    file.write(buffer, sizeof(buffer));
+    file.write(buffer, sizeof(buffer)); // already advances the pointer in where we are writing in the file
 
     char ip_buffer[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(address.sin_addr), ip_buffer, INET_ADDRSTRLEN);
@@ -91,11 +91,12 @@ TODO: fix write buffer len, can only write as much as i receive
       in send we dont need to specifie an ip,
       since this is based on establishing connections is just what we need
     */
-  } while (1);
+  } while (sizeof(buffer) >= 1024 * 64);
 
   close(server_socket);
   close(new_socket);
   file.close();
+  std::cout << "sucess in transfering the file" << std::endl;
   return EXIT_SUCCESS;
   
 }
