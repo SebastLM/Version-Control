@@ -59,8 +59,8 @@ int main() {
   char ch;
 
   while (true) {
-    ssize_t n = recv(new_socket, &ch, 1, 0);
-    if (n <= 0) {
+    ssize_t r = recv(new_socket, &ch, 1, 0);
+    if (r < 0) {
         perror("failed to receive filename");
         exit(EXIT_FAILURE);
     }

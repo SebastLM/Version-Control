@@ -1,2 +1,4 @@
-/license
-/thinking
+LICENSE
+thinking
+*.out
+file.*
