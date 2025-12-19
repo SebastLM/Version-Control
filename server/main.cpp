@@ -12,7 +12,8 @@ int main() {
 
   int port = 47195 , new_socket;
   struct sockaddr_in address;
-  char buffer[1024 * 64] = {0};
+  unsigned long LEN = 1024 * 64;
+  char buffer[LEN] = {0};
   int addrlen = sizeof(address);
   // const char* hello = "recived message from server";
   int layer_socket = 1;
@@ -68,12 +69,22 @@ int main() {
   }
 
   std::ofstream file(file_name, std::ios::binary);
+  
+  if (!file.is_open()) {
+    perror("error opening the file for writing");
+    close(server_socket);
+    close(new_socket);
+    exit(EXIT_FAILURE);
+  }
+
 /*
 TODO: fix write buffer len, can only write as much as i receive
 */
+  ssize_t recv_len;
+
   do {
 
-    ssize_t recv_len = recv(new_socket, buffer, sizeof(buffer), 0);
+    recv_len = recv(new_socket, buffer, sizeof(buffer), 0);
     if (recv_len < 0) {
       perror("error reciving file chunk\n");
       close(server_socket);
@@ -81,7 +92,7 @@ TODO: fix write buffer len, can only write as much as i receive
       exit(EXIT_FAILURE);
     }
     
-    file.write(buffer, sizeof(buffer)); // already advances the pointer in where we are writing in the file
+    file.write(buffer, recv_len); // already advances the pointer in where we are writing in the file
 
     char ip_buffer[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(address.sin_addr), ip_buffer, INET_ADDRSTRLEN);
@@ -91,7 +102,7 @@ TODO: fix write buffer len, can only write as much as i receive
       in send we dont need to specifie an ip,
       since this is based on establishing connections is just what we need
     */
-  } while (sizeof(buffer) >= 1024 * 64);
+  } while (recv_len > 0);
 
   close(server_socket);
   close(new_socket);
