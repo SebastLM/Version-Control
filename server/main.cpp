@@ -4,18 +4,19 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <cstring>
-
-
+#include <fstream>
 
 
 
 int main() {
+
   int port = 47195 , new_socket;
   struct sockaddr_in address;
-  char buffer[1024] = {0};
+  char buffer[1024 * 64] = {0};
   int addrlen = sizeof(address);
-  const char* hello = "recived message from server";
+  // const char* hello = "recived message from server";
   int layer_socket = 1;
+
   ssize_t server_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (server_socket == -1 ) {
     perror("socket set up failed");
@@ -33,6 +34,7 @@ int main() {
 
   if (bind(server_socket, (struct sockaddr*)&address, sizeof(address)) < 0) {
     perror("error binding socket to port");
+    close(server_socket);
     exit(EXIT_FAILURE);
   }
   
@@ -48,26 +50,52 @@ int main() {
   
   if ((new_socket = accept(server_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
     perror("error accepting connections");
+    close(server_socket);
     exit(EXIT_FAILURE);
   }
   
-  ssize_t valread = recv(new_socket, buffer, 1024, 0);
-  printf("%s", buffer);
+  std::string file_name;
+  char ch;
 
+  while (true) {
+    ssize_t n = recv(new_socket, &ch, 1, 0);
+    if (n <= 0) {
+        perror("failed to receive filename");
+        exit(EXIT_FAILURE);
+    }
+    if (ch == '\0') break;
+    file_name.push_back(ch);
+  }
+
+  std::ofstream file(file_name, std::ios::binary);
+/*
+TODO: fix write buffer len, can only write as much as i receive
+*/
   do {
-    if (send(new_socket, hello, strlen(hello), 0) < 0) {
-      perror("error sending a message");
+
+    ssize_t recv_len = recv(new_socket, buffer, sizeof(buffer), 0);
+    if (recv_len < 0) {
+      perror("error reciving file chunk\n");
+      close(server_socket);
+      close(new_socket);
       exit(EXIT_FAILURE);
     }
     
+    file.write(buffer, sizeof(buffer));
+
     char ip_buffer[INET_ADDRSTRLEN];
     inet_ntop(AF_INET, &(address.sin_addr), ip_buffer, INET_ADDRSTRLEN);
     std::string ip_string = ip_buffer;
-    std::cout << "Sent to IP address: " << ip_string << std::endl;
-    /* 
+    std::cout << "received chunk from IP address: " << ip_string << "\n" << std::endl;
+    /*
       in send we dont need to specifie an ip,
       since this is based on establishing connections is just what we need
     */
   } while (1);
+
+  close(server_socket);
+  close(new_socket);
+  file.close();
+  return EXIT_SUCCESS;
   
 }
