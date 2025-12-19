@@ -1,9 +1,2 @@
-first off i will need to worry about the establishing a connection(implement localy first so i dont have to worry about port forwading in the router).
-
-second try and upload a file to the server
-
-third will need to add hash verifications, and worry about comiting to the right directory and cloning other small stuff
-
-in the end will need to worry about a small interface that will just show the files in that directory
-
+still need to fix that i can only write the bytes that i received from the buffer, not the whole buffer, it may not be full ...
 
