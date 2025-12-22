@@ -16,15 +16,18 @@ int main() {
   char buffer[LEN] = {0};
   int addrlen = sizeof(address);
   // const char* hello = "recived message from server";
-  int layer_socket = 1;
 
   ssize_t server_socket = socket(AF_INET, SOCK_STREAM, 0);
   if (server_socket == -1 ) {
     perror("socket set up failed");
     exit(EXIT_FAILURE);
   }
-
-  if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &layer_socket, sizeof(int)) <  0) {
+  
+  struct timeval tv;
+  tv.tv_sec = 5;      // timeout = 5 second
+  tv.tv_usec = 0;
+  
+  if (setsockopt(server_socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) <  0) {
     perror("setsockopt");
     exit(EXIT_FAILURE);
   }
@@ -57,57 +60,71 @@ int main() {
   
   std::string file_name;
   char ch;
+  bool ended_transfer = 0;
 
-  while (true) {
-    ssize_t r = recv(new_socket, &ch, 1, 0);
-    if (r < 0) {
+  while (1) {
+
+    int iter = 0;
+    while (true) {
+      ssize_t r = recv(new_socket, &ch, 1, 0);
+      if (r < 0) {
+         if ((errno == EAGAIN || errno == EWOULDBLOCK) && iter == 0) {
+          std::cout << "endend the file transfer";
+          ended_transfer = 1;
+          break;
+        }
         perror("failed to receive filename");
         exit(EXIT_FAILURE);
+      }
+      iter++;
+      if (ch == '\0') break;
+      file_name.push_back(ch);
     }
-    if (ch == '\0') break;
-    file_name.push_back(ch);
-  }
 
-  std::ofstream file(file_name, std::ios::binary);
+    if (ended_transfer) break;
+
+    std::ofstream file(file_name, std::ios::binary);
   
-  if (!file.is_open()) {
-    perror("error opening the file for writing");
-    close(server_socket);
-    close(new_socket);
-    exit(EXIT_FAILURE);
-  }
-
-/*
-TODO: fix write buffer len, can only write as much as i receive
-*/
-  ssize_t recv_len;
-
-  do {
-
-    recv_len = recv(new_socket, buffer, sizeof(buffer), 0);
-    if (recv_len < 0) {
-      perror("error reciving file chunk\n");
+    if (!file.is_open()) {
+      perror("error opening the file for writing");
       close(server_socket);
       close(new_socket);
       exit(EXIT_FAILURE);
     }
+
+    ssize_t recv_len;
+
+    do {
+
+      recv_len = recv(new_socket, buffer, sizeof(buffer), 0);
+      if (recv_len < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK)  std::cout << "endend the file transfer missing files" << std::endl;
+  
+        file.close();
+        perror("error reciving file chunk\n");
+        close(server_socket);
+        close(new_socket);
+        exit(EXIT_FAILURE);
+      }
     
-    file.write(buffer, recv_len); // already advances the pointer in where we are writing in the file
+      file.write(buffer, recv_len); // already advances the pointer in where we are writing in the file
 
-    char ip_buffer[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &(address.sin_addr), ip_buffer, INET_ADDRSTRLEN);
-    std::string ip_string = ip_buffer;
-    std::cout << "received chunk from IP address: " << ip_string << "\n" << std::endl;
-    /*
-      in send we dont need to specifie an ip,
-      since this is based on establishing connections is just what we need
-    */
-  } while (recv_len > 0);
+      char ip_buffer[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, &(address.sin_addr), ip_buffer, INET_ADDRSTRLEN);
+      std::string ip_string = ip_buffer;
+      std::cout << "received chunk from IP address: " << ip_string << "\n" << std::endl;
+      /*
+        in send we dont need to specifie an ip,
+        since this is based on establishing connections is just what we need
+      */
+    } while (recv_len > 0);
 
+    file.close();
+  }
   close(server_socket);
   close(new_socket);
-  file.close();
-  std::cout << "sucess in transfering the file" << std::endl;
+
+  std::cout << "sucess in transfering the files" << std::endl;
   return EXIT_SUCCESS;
-  
+
 }
