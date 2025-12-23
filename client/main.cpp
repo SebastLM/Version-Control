@@ -6,16 +6,62 @@
 #include <fstream>
 #include <unistd.h>
 #include <string>
+#include <fstream>
+#include <stdexcept>
+#include <print>
+
+#include "send_all_recv_all.h"
+
+#define MAX_CHUNK_SIZE 64 * 1024
+
+/*
+ 
+  TODO: the files will be moved to a dir when changed.
+  when i want to transfer the files i will simply send the files on that directory, for this i will need to have the server and me know what project we are commiting to
+ 
+ */
+
+int send_files(int sock, const std::string& file_to_send) {
+  
+  std::ifstream file(file_to_send, std::ios::binary);
+  if (!file) throw std::runtime_error("opening the file for commit failed");
+
+  uint32_t name_len = path.size();
+  send_all(sock, &name_len, sizeof(name_len));
+  send_all(sock, path.data(), name_len);
+  
+  // allow for seaking a position in a file
+  // its included in the fstream header
+  file.seekg(0, std::ios::end); // set the position to the read in the stream 0 from the end(std::ios::end), so basically the file pointer is now at the end of the file
+  size_t size_file = file.tellg(); // used to find current read position, which can tell us the total file size;
+  file.seekg(0); // back to the beggining for reading the file and transfering
+  
+  send_all(sock, &size_file, sizeof(size_file));// sending the size of the file so it knows how much it will take
+  /*
+   TODO: will had the "sending hash" here latter to make sure that the file is not altered 
+  */
+
+  char file_buf[MAX_CHUNK_SIZE];
+  while (file) {
+    file.read(file_buf, sizeof(file_buf));
+    send_all(sock, file_buf, file.gcount());
+  }
+  file.close();
+  return 1;
+}
+
+
+
 
 int send_files(std::string files_to_commit) { 
 
+
+  // file that stores the "commit files"
   std::ifstream file_info(files_to_commit, std::ios::binary);
   if (!file_info) {
     perror("failed to open file");
     exit(EXIT_FAILURE);
   }
-
-  // const char *hello = "hello from client";
 
   ssize_t sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
@@ -38,60 +84,21 @@ int send_files(std::string files_to_commit) {
     return EXIT_FAILURE;
   }
   
-  std::string file_name_tmp;
-  while (std::getline(file_info, file_name_tmp)) {
+  std::string file_name;
+  while (std::getline(file_info, file_name)) {
+    while (1) {
    /*
-      TODO: implement the read line logic to convert it into a file for reading 
+      read line logic to convert it into a file for reading 
    */ 
-    // const char* file_name = file_name_tmp.c_str();
-    std::vector<char> file_name(file_name_tmp.begin(), file_name_tmp.end()); 
-    file_name.push_back('\0');
-    char * c = &file_name[0];
+    int trasnfer_value = 0; 
+    transfer_value = send_files(sock, file_name);
 
-    std::ifstream file(files_name, std::ios::binary);
-    if (!file) {
-      perror("failed to open file");
-      exit(EXIT_FAILURE);
+    if (trasnfer_value) break;
+    std::print("error sending the file {}, trying again", file_name);
     }
-
-    size_t total = strlen(file_name) + 1; // +1 to guarantee that the file is null terminated \0
-    size_t sent = 0;
-    std::cout << "connected" << std::endl;
-    while (sent < total) {
-      ssize_t s = send(sock, file_name + sent, total - sent, 0);
-      std::cout << "filename"  << std::endl;
-      if (s <= 0) {
-        perror("error sending file name");
-        close(sock);
-        exit(EXIT_FAILURE);
-      }
-      sent += s;
-    }
-
-    char buffer[1024*64];
-  
-    while (file) {
-      file.read(buffer, sizeof(buffer));
-      std::streamsize n = file.gcount();
-      if (n == 0) break;
-    
-      std::streamsize sent = 0;
-
-      while (sent < n) {
-
-        ssize_t s = send(sock, buffer + sent, n - sent, 0);
-        if (s <= 0) {
-          perror("error sending file chunk");
-          close(sock);
-          file.close();
-          exit(EXIT_FAILURE);
-        }
-        sent += s;
-     }
-    }
-
-    file.close();
   }
+
+  file_info.close();
   close(sock);
   exit(EXIT_SUCCESS);
 }
