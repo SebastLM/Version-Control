@@ -1,2 +1,28 @@
 still need to fix that i can only write the bytes that i received from the buffer, not the whole buffer, it may not be full ...
+/*
+  TODO: make a class that is a project folder, that class can be hierarchical of other project folders that are part of that same project.
+  PROJECT1
+  |
+  |--project1_subfolder
+  |       |
+  |       |--file
+  |--file
+  |
+  (...)
 
+  this will be in client that will need to be running and detecting changes in the files and changing them in the class to updated. 
+  when i type in its respective terminal a specific set of key words it will commit all changes in the different projects 
+
+  i will have to store the project dir on a local file that will then allow me, when starting the program again to go through each project and create each class
+
+  in the end only the projects with change will be commited interly, not good but easier for now
+
+
+
+
+
+
+
+  will need to worry about files changing names, if that doesnt affect the hash i should follow a path related to its
+  will need to worry about cloning and pulling just specific files later on
+*/  

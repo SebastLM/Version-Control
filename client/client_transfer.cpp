@@ -6,11 +6,11 @@
 #include <fstream>
 #include <unistd.h>
 #include <string>
-#include <fstream>
 #include <stdexcept>
-#include <print>
+#include <cstdint>
 
 #include "send_all_recv_all.h"
+#include "hash.h"
 
 #define MAX_CHUNK_SIZE 64 * 1024
 
@@ -21,21 +21,42 @@
  
  */
 
+/* 
+  function for host to  network translation for uint64_t
+  extra:  no need for handling 128 bit file sizes, its unrealistic, 2^128 file_size?? absurd
+*/
+uint64_t htonll(uint64_t v) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    return ((uint64_t)htonl(v & 0xFFFFFFFF) << 32) | htonl(v >> 32);
+#else
+    return v;
+#endif
+}
+
+
+
+/*
+  Why do i not use the host to network translation every where i send? because the Endianness conversion is only for fixed width integers that represent numbers
+  like uint32_t and uint64_t. File names and its contents or buffers cant be convert to so
+*/
+namespace send_all_recv_all {
+  
 int send_files(int sock, const std::string& file_to_send) {
   
   std::ifstream file(file_to_send, std::ios::binary);
   if (!file) throw std::runtime_error("opening the file for commit failed");
 
-  uint32_t name_len = path.size();
+  uint32_t name_len = htonl(file_to_send.size());
   send_all(sock, &name_len, sizeof(name_len));
-  send_all(sock, path.data(), name_len);
+  send_all(sock, file_to_send.data(), name_len);
   
   // allow for seaking a position in a file
   // its included in the fstream header
   file.seekg(0, std::ios::end); // set the position to the read in the stream 0 from the end(std::ios::end), so basically the file pointer is now at the end of the file
-  size_t size_file = file.tellg(); // used to find current read position, which can tell us the total file size;
+  uint64_t size_file = file.tellg(); // used to find current read position, which can tell us the total file size;
   file.seekg(0); // back to the beggining for reading the file and transfering
   
+  size_file = htonll(size_file);
   send_all(sock, &size_file, sizeof(size_file));// sending the size of the file so it knows how much it will take
   /*
    TODO: will had the "sending hash" here latter to make sure that the file is not altered 
@@ -50,11 +71,17 @@ int send_files(int sock, const std::string& file_to_send) {
   return 1;
 }
 
+}
 
 
+int main(int argc, char* argv[]) { 
+  
+  if (argc != 2){
+    std::cout << "error, usage should be ./(...) file_with_commits" << std::endl;
+    return EXIT_FAILURE;
+  }
 
-int send_files(std::string files_to_commit) { 
-
+  std::string files_to_commit = argv[1];
 
   // file that stores the "commit files"
   std::ifstream file_info(files_to_commit, std::ios::binary);
@@ -90,11 +117,11 @@ int send_files(std::string files_to_commit) {
    /*
       read line logic to convert it into a file for reading 
    */ 
-    int trasnfer_value = 0; 
-    transfer_value = send_files(sock, file_name);
+    int transfer_value = 0; 
+    transfer_value = send_all_recv_all::send_files(sock, file_name);
 
-    if (trasnfer_value) break;
-    std::print("error sending the file {}, trying again", file_name);
+    if (transfer_value) break;
+    std::cerr << "error sending the file" << file_name << ",trying again" << std::endl;
     }
   }
 

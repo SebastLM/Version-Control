@@ -2,3 +2,4 @@ LICENSE
 thinking
 *.out
 file.*
+*.o
