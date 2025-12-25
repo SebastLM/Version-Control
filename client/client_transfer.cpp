@@ -45,15 +45,22 @@ namespace send_all_recv_all {
 int send_files(int sock, const std::string& file_to_send) {
   
   std::ifstream file(file_to_send, std::ios::binary);
-  if (!file) throw std::runtime_error("opening the file for commit failed");
+  if (!file && !file_to_send.empty()) throw std::runtime_error("opening the file for commit failed");
 
-  uint32_t name_len = htonl(file_to_send.size());
+  uint32_t name_len = file_to_send.size();
+  uint32_t net_name_len = htonl(name_len);
 
-  std::cout << "sending " << file_to_send << " name length: " << file_to_send.size() << std::endl;
-  send_all(sock, &name_len, file_to_send.size());
+  if (!file_to_send.empty()) 
+    std::cout << "\tsending " << file_to_send << " name length: " << file_to_send.size() << std::endl;
+
+  send_all(sock, &net_name_len, sizeof(net_name_len));
   
-  std::cout << "sending file name " <<  file_to_send << std::endl;
-  send_all(sock, file_to_send.data(), file_to_send.size());
+  if (file_to_send.empty()) {
+    file.close();
+    return 1;
+  }
+  std::cout << "\tsending file name " <<  file_to_send << std::endl;
+  send_all(sock, file_to_send.data(), name_len);
   
   // allow for seaking a position in a file
   // its included in the fstream header
@@ -61,7 +68,7 @@ int send_files(int sock, const std::string& file_to_send) {
   uint64_t size_file = file.tellg(); // used to find current read position, which can tell us the total file size;
   file.seekg(0); // back to the beggining for reading the file and transfering
   
-  std::cout << "sending file size: " << size_file << std::endl;
+  std::cout << "\tsending file size: " << size_file << std::endl;
   size_file = htonll(size_file);
   send_all(sock, &size_file, sizeof(size_file));// sending the size of the file so it knows how much it will take
   /*
@@ -73,10 +80,11 @@ int send_files(int sock, const std::string& file_to_send) {
   while (file) {
 
     file.read(file_buf, sizeof(file_buf));
-    std::cout << "sending chuck: " << i << " (" << file_to_send << ")" << std::endl;
+    std::cout << "\t\tsending chuck: " << i << " (" << file_to_send << ")" << std::endl;
     send_all(sock, file_buf, file.gcount());
     i++;
   }
+  std::cout << "\n\n";
   file.close();
   return 1;
 }
@@ -108,7 +116,7 @@ int main(int argc, char* argv[]) {
   
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
-  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
+  inet_pton(AF_INET, "192.168.1.100", &serv_addr.sin_addr);
   serv_addr.sin_port = htons(47195);
   
   if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
@@ -124,7 +132,8 @@ int main(int argc, char* argv[]) {
   std::string file_name;
   while (std::getline(file_info, file_name)) {
     while (1) {
-      std::cout << "preparing to send file: " << file_name << std::endl;
+      if (!file_name.empty()) // making sure we dont print when we in the last line. last line has nothing but its our way of stoping the receiver from waiting on more files
+        std::cout << "preparing to send file: ||| " << file_name << " |||" << std::endl;
    /*
       read line logic to convert it into a file for reading 
    */ 
@@ -135,7 +144,7 @@ int main(int argc, char* argv[]) {
     std::cerr << "error sending the file" << file_name << ",trying again" << std::endl;
     }
   }
-
+  std::cout << "\n\nending the file transfer successfully" << std::endl;
   file_info.close();
   close(sock);
   exit(EXIT_SUCCESS);

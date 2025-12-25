@@ -1,7 +1,7 @@
 LICENSE
 thinking
 *.out
-file.*
+file*
 *.o
 server
 client_trasnfer

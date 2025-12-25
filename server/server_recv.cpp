@@ -43,7 +43,7 @@ int recv_files(int sock) {
     recv_all(sock, &name_len, sizeof(name_len)); 
     name_len = ntohl(name_len);
 
-    std::cout << "lenght of file name " << name_len << std::endl;
+    std::cout << "\tlenght of file name " << name_len << std::endl;
     
     if (name_len == 0) break; // end of transfer
     
@@ -53,13 +53,13 @@ int recv_files(int sock) {
 
     //receive the actual file name and add it to the fi
     recv_all(sock, name.data(), name_len);
-    std::cout << "file name: " << name << std::endl;
+    std::cout << "\tfile name: |||" << name << "|||" << std::endl;
   
     // needed so we know when to stop our receving loop
     uint64_t file_size;
     recv_all(sock, &file_size, sizeof(file_size));
     file_size = ntohll(file_size);
-    std::cout << "file size: " << file_size << std::endl;
+    std::cout << "\tfile size: " << file_size << std::endl;
 
     // initialize a output file stream to create or overwrite a file. writing data in binary mode
     std::ofstream file_out(name, std::ios::binary);
@@ -71,7 +71,7 @@ int recv_files(int sock) {
       // we do this to deal with the buffer not filling, and so we know the actual recived len
       size_t file_chunk = std::min<size_t>(sizeof(file_buf), file_size);
       recv_all(sock, file_buf, file_chunk);
-      std::cout << "received chunk: " << i << std::endl;
+      std::cout << "\t\treceived chunk: " << i << std::endl;
       /*
         TODO: need to make sure i am not overwriting an actual system file;
       */
@@ -79,7 +79,9 @@ int recv_files(int sock) {
       file_size -= file_chunk;
       i++;
     }
+    std::cout << "\n";
   }
+  std::cout << "\n\n";
   return 1;
 } 
 } // namespace send_all_recv_all
@@ -152,7 +154,7 @@ int main() {
   close(server_socket);
   close(new_socket);
 
-  std::cout << "sucess in transfering the files" << std::endl;
+  std::cout << "\n\nsucess in transfering the files" << std::endl;
   return EXIT_SUCCESS;
   
 }
