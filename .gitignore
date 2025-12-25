@@ -3,3 +3,5 @@ thinking
 *.out
 file.*
 *.o
+server
+client_trasnfer

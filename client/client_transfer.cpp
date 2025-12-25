@@ -24,6 +24,7 @@
 /* 
   function for host to  network translation for uint64_t
   extra:  no need for handling 128 bit file sizes, its unrealistic, 2^128 file_size?? absurd
+  this conversion is needed because diferent systems store multi byte integers in different byte orders
 */
 uint64_t htonll(uint64_t v) {
 #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
@@ -47,8 +48,12 @@ int send_files(int sock, const std::string& file_to_send) {
   if (!file) throw std::runtime_error("opening the file for commit failed");
 
   uint32_t name_len = htonl(file_to_send.size());
-  send_all(sock, &name_len, sizeof(name_len));
-  send_all(sock, file_to_send.data(), name_len);
+
+  std::cout << "sending " << file_to_send << " name length: " << file_to_send.size() << std::endl;
+  send_all(sock, &name_len, file_to_send.size());
+  
+  std::cout << "sending file name " <<  file_to_send << std::endl;
+  send_all(sock, file_to_send.data(), file_to_send.size());
   
   // allow for seaking a position in a file
   // its included in the fstream header
@@ -56,6 +61,7 @@ int send_files(int sock, const std::string& file_to_send) {
   uint64_t size_file = file.tellg(); // used to find current read position, which can tell us the total file size;
   file.seekg(0); // back to the beggining for reading the file and transfering
   
+  std::cout << "sending file size: " << size_file << std::endl;
   size_file = htonll(size_file);
   send_all(sock, &size_file, sizeof(size_file));// sending the size of the file so it knows how much it will take
   /*
@@ -63,9 +69,13 @@ int send_files(int sock, const std::string& file_to_send) {
   */
 
   char file_buf[MAX_CHUNK_SIZE];
+  int i = 1; 
   while (file) {
+
     file.read(file_buf, sizeof(file_buf));
+    std::cout << "sending chuck: " << i << " (" << file_to_send << ")" << std::endl;
     send_all(sock, file_buf, file.gcount());
+    i++;
   }
   file.close();
   return 1;
@@ -98,7 +108,7 @@ int main(int argc, char* argv[]) {
   
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
-  inet_pton(AF_INET, "192.168.1.95", &serv_addr.sin_addr);
+  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
   serv_addr.sin_port = htons(47195);
   
   if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
@@ -114,6 +124,7 @@ int main(int argc, char* argv[]) {
   std::string file_name;
   while (std::getline(file_info, file_name)) {
     while (1) {
+      std::cout << "preparing to send file: " << file_name << std::endl;
    /*
       read line logic to convert it into a file for reading 
    */ 

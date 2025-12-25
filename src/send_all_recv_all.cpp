@@ -11,7 +11,7 @@ void send_all(int sock, const void* data, size_t len) {
   
   while (len > 0) {
     ssize_t send_size = send(sock, p, len, 0);
-    if (send_size < 0) throw std::runtime_error("failed to send file");
+    if (send_size <= 0) throw std::runtime_error("failed to send file");
 
     p += send_size;
     len -= send_size;

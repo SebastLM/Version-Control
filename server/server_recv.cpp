@@ -40,36 +40,44 @@ int recv_files(int sock) {
     
     // file name length
     uint32_t name_len;
-    recv_all(sock, &name_len, sizeof(name_len));
-    
+    recv_all(sock, &name_len, sizeof(name_len)); 
     name_len = ntohl(name_len);
+
+    std::cout << "lenght of file name " << name_len << std::endl;
+    
     if (name_len == 0) break; // end of transfer
-  
+    
     // add the null character to the end of the string where we will store the file
     // this is the constructor of the std::string class
     std::string name(name_len, '\0');
+
     //receive the actual file name and add it to the fi
     recv_all(sock, name.data(), name_len);
-
+    std::cout << "file name: " << name << std::endl;
+  
     // needed so we know when to stop our receving loop
     uint64_t file_size;
     recv_all(sock, &file_size, sizeof(file_size));
     file_size = ntohll(file_size);
+    std::cout << "file size: " << file_size << std::endl;
 
     // initialize a output file stream to create or overwrite a file. writing data in binary mode
     std::ofstream file_out(name, std::ios::binary);
     if (!file_out) throw std::runtime_error("failed to open output file stream");
 
     char file_buf[MAX_CHUNK_SIZE];
+    int i = 1;
     while (file_size > 0) {
       // we do this to deal with the buffer not filling, and so we know the actual recived len
       size_t file_chunk = std::min<size_t>(sizeof(file_buf), file_size);
       recv_all(sock, file_buf, file_chunk);
+      std::cout << "received chunk: " << i << std::endl;
       /*
         TODO: need to make sure i am not overwriting an actual system file;
       */
       file_out.write(file_buf, file_chunk);
       file_size -= file_chunk;
+      i++;
     }
   }
   return 1;
