@@ -7,7 +7,12 @@
 bool hashing(std::ifstream& file, unsigned char out[EVP_MAX_MD_SIZE], unsigned int& out_len) {
    
   EVP_MD_CTX* ctx = EVP_MD_CTX_new();
-  EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr);
+  if (!ctx) return false;
+
+  if (EVP_DigestInit_ex(ctx, EVP_sha256(), nullptr) != 1) {
+    EVP_MD_CTX_free(ctx);
+    return false;
+  }
   
   char buffer[64 * 1024];
     
@@ -22,4 +27,6 @@ bool hashing(std::ifstream& file, unsigned char out[EVP_MAX_MD_SIZE], unsigned i
   EVP_MD_CTX_free(ctx);
   return true;
 }
+
+
 
