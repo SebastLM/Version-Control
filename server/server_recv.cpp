@@ -41,25 +41,25 @@ int recv_files(int sock) {
     // file name length
     uint32_t name_len;
     recv_all(sock, &name_len, sizeof(name_len)); 
-    name_len = ntohl(name_len);
-
-    std::cout << "\tlenght of file name " << name_len << std::endl;
+    name_len = ntohl(name_len); 
     
     if (name_len == 0) break; // end of transfer
     
+    std::cout << "lenght of file name " << name_len << std::endl;
+
     // add the null character to the end of the string where we will store the file
     // this is the constructor of the std::string class
     std::string name(name_len, '\0');
 
     //receive the actual file name and add it to the fi
     recv_all(sock, name.data(), name_len);
-    std::cout << "\tfile name: |||" << name << "|||" << std::endl;
+    std::cout << "file name: |||" << name << "|||" << std::endl;
   
     // needed so we know when to stop our receving loop
     uint64_t file_size;
     recv_all(sock, &file_size, sizeof(file_size));
     file_size = ntohll(file_size);
-    std::cout << "\tfile size: " << file_size << std::endl;
+    std::cout << "file size: " << file_size << std::endl;
 
     // initialize a output file stream to create or overwrite a file. writing data in binary mode
     std::ofstream file_out(name, std::ios::binary);
@@ -71,7 +71,7 @@ int recv_files(int sock) {
       // we do this to deal with the buffer not filling, and so we know the actual recived len
       size_t file_chunk = std::min<size_t>(sizeof(file_buf), file_size);
       recv_all(sock, file_buf, file_chunk);
-      std::cout << "\t\treceived chunk: " << i << std::endl;
+      std::cout << "\treceived chunk: " << i << std::endl;
       /*
         TODO: need to make sure i am not overwriting an actual system file;
       */
@@ -79,9 +79,29 @@ int recv_files(int sock) {
       file_size -= file_chunk;
       i++;
     }
-    std::cout << "\n";
+    file_out.close();
+    std::ifstream file_in(name, std::ios::binary);
+
+    unsigned int len_hash;
+    unsigned char hash_buffer[32];
+
+    if (!hashing(file_in, hash_buffer, len_hash)) throw std::runtime_error("error calculating hash value");
+    if (len_hash != 32) throw std::runtime_error("unexpected hash length");
+    
+    unsigned char received_hash[32];
+    recv_all(sock, received_hash, 32);
+
+    int op_value = 1;
+    if (std::memcmp(received_hash, hash_buffer, len_hash) != 0) {
+      op_value = 0;
+      std::cout << "hashes for file " << name << " are different" << std::endl;
+    }
+
+    send_all(sock, &op_value, sizeof(int));
+
+    std::cout << "\n\n";
   }
-  std::cout << "\n\n";
+  std::cout << "\n";
   return 1;
 } 
 } // namespace send_all_recv_all

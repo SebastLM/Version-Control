@@ -41,11 +41,16 @@ uint64_t htonll(uint64_t v) {
   like uint32_t and uint64_t. File names and its contents or buffers cant be convert to so
 */
 namespace send_all_recv_all {
+
   
 int send_files(int sock, const std::string& file_to_send) {
   
+
   std::ifstream file(file_to_send, std::ios::binary);
-  if (!file && !file_to_send.empty()) throw std::runtime_error("opening the file for commit failed");
+  if (!file && !file_to_send.empty()) {
+    printf("opening the file for commit failed\n");
+    return 0;
+  }
 
   uint32_t name_len = file_to_send.size();
   uint32_t net_name_len = htonl(name_len);
@@ -84,6 +89,30 @@ int send_files(int sock, const std::string& file_to_send) {
     send_all(sock, file_buf, file.gcount());
     i++;
   }
+
+  unsigned int len_hash;
+  unsigned char hash_buffer[32];
+  
+  // moving the read pointer for the beggining for proper hashing
+  file.clear();
+  file.seekg(0, std::ios::beg);
+
+  if (!hashing(file, hash_buffer,len_hash)) throw std::runtime_error("failed to calculate hash");
+  if (len_hash != 32) throw std::runtime_error("unexpected hash length");
+
+  size_t hash_len = len_hash;
+  int value;
+  // if the hash is not the same we will have to repeat the process of sending the file
+  // this is probably not going to happen since we are using TCP, but we want to be 100% sure
+  // the process of sending the file again from the beggining might be slow but since its probably never gonna happen and if it does its rare
+  // i would prefer to only check at the end rather then be checkin in each exchange, making me check 4+ times
+  send_all(sock, hash_buffer, hash_len);
+  recv_all(sock, &value, sizeof(int));
+  if (!value) {
+    file.close();
+    return 0;
+  }
+
   std::cout << "\n\n";
   file.close();
   return 1;
@@ -116,7 +145,7 @@ int main(int argc, char* argv[]) {
   
   struct sockaddr_in serv_addr;
   serv_addr.sin_family = AF_INET;
-  inet_pton(AF_INET, "192.168.1.100", &serv_addr.sin_addr);
+  inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
   serv_addr.sin_port = htons(47195);
   
   if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
