@@ -4,4 +4,6 @@ thinking
 file*
 *.o
 server
-client_trasnfer
+client
+README.md
+files_to_transfer/
