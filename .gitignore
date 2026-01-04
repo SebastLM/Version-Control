@@ -2,7 +2,7 @@ LICENSE
 thinking
 *.out
 *.o
-server
-client
+/server/server
+/client/client
 README.md
 files_to_transfer/
