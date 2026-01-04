@@ -13,17 +13,20 @@ SERVER_DIR := server
 SRC_DIR    := src
 
 # Targets
-CLIENT := $(CLIENT_DIR)/client_transfer
+CLIENT := $(CLIENT_DIR)/client
 SERVER := $(SERVER_DIR)/server
 
 # Shared source files
 COMMON_SRC := \
 	$(SRC_DIR)/send_all_recv_all.cpp \
-	$(SRC_DIR)/hash.cpp
+	$(SRC_DIR)/hash.cpp \
+	$(SRC_DIR)/file_receiver.cpp \
+	$(SRC_DIR)/file_sender.cpp
 
 # Client / server sources
-CLIENT_SRC := $(CLIENT_DIR)/client_transfer.cpp $(COMMON_SRC)
-SERVER_SRC := $(SERVER_DIR)/server_recv.cpp $(COMMON_SRC)
+CLIENT_SRC := $(CLIENT_DIR)/client.cpp $(COMMON_SRC)
+SERVER_SRC := $(SERVER_DIR)/server.cpp $(COMMON_SRC)
+
 
 # Default target
 all: $(CLIENT) $(SERVER)
