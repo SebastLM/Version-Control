@@ -24,8 +24,8 @@ COMMON_SRC := \
 	$(SRC_DIR)/file_sender.cpp
 
 # Client / server sources
-CLIENT_SRC := $(CLIENT_DIR)/client.cpp $(COMMON_SRC)
-SERVER_SRC := $(SERVER_DIR)/server.cpp $(COMMON_SRC)
+CLIENT_SRC := $(CLIENT_DIR)/client_main.cpp $(COMMON_SRC)
+SERVER_SRC := $(SERVER_DIR)/server_main.cpp $(COMMON_SRC)
 
 
 # Default target

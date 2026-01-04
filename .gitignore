@@ -1,7 +1,6 @@
 LICENSE
 thinking
 *.out
-file*
 *.o
 server
 client
