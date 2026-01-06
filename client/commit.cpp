@@ -16,8 +16,8 @@ namespace fs = std::filesystem;
 /*
     The commit has of now will do the following:
         1. obtain the place where the executable is called
-        2. read from the file that stores the state of the project(active_projects/project/index)
-        3. verify accordingly to its previous registered project_tree and file_hashes if anything has changed
+        2. read from the file that stores the state(tree, hash) of the project(active_projects/project/index)
+        3. verify accordingly to its previous registered project_tree and file_hashes if anything has been changed, created or deleted
         4. send the changed files to the host and keep the new record of information(tree, file hashes)
 */
 int main(int argc, char* argv[]) {
