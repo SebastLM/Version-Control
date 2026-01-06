@@ -13,6 +13,7 @@
 #include "send_all_recv_all.h"
 #include "hash.h"
 #include "file_sender.h"
+#include "path_trim.h"
 
 #define MAX_CHUNK_SIZE 64 * 1024
 
@@ -36,8 +37,6 @@ uint64_t htonll(uint64_t v) {
 #endif
 }
 
-
-
 /*
   Why do i not use the host to network translation every where i send? because the Endianness conversion is only for fixed width integers that represent numbers
   like uint32_t and uint64_t. File names and its contents or buffers cant be convert to so
@@ -45,14 +44,16 @@ uint64_t htonll(uint64_t v) {
 namespace send_all_recv_all {
 
   
-int send_files(int sock, const std::string& file_to_send) {
+int send_files(int sock, std::string& file_to_send) {
   
-
   std::ifstream file(file_to_send, std::ios::binary);
   if (!file && !file_to_send.empty()) {
     printf("opening the file for commit failed\n");
     return 0;
   }
+
+  // file_name(file_to_send);
+  std::cout << file_to_send << std::endl;
 
   uint32_t name_len = file_to_send.size();
   uint32_t net_name_len = htonl(name_len);
@@ -142,6 +143,7 @@ int file_sender(int sock, std::string files_to_commit) {
    /*
       read line logic to convert it into a file for reading 
    */ 
+    
     int transfer_value = 0; 
     transfer_value = send_all_recv_all::send_files(sock, file_name);
 

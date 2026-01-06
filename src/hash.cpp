@@ -1,5 +1,8 @@
 #include <fstream>
 #include <openssl/evp.h>
+#include <sstream>
+#include <iomanip>
+
 
 #include "hash.h"
 
@@ -27,6 +30,21 @@ bool hashing(std::ifstream& file, unsigned char out[EVP_MAX_MD_SIZE], unsigned i
   EVP_MD_CTX_free(ctx);
   return true;
 }
+
+
+
+// converts the hash to hex-encoding so we are not storing raw binary bytes
+// this is needed since we are treating it like a string while reading from the index files
+std::string hash_value_to_store(const unsigned char* hash, size_t len) {
+
+  std::ostringstream oss;
+  for (size_t i = 0; i < len; ++i) {
+    oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(hash[i]);
+  }
+  return oss.str();
+}
+
+
 
 
 
