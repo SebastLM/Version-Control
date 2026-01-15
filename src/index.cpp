@@ -4,24 +4,14 @@
 
 #include "index.h"
 
-/*
-    this functions enable us to mess with the respective index of each projects,
-*/
-/*
-struct IndexEntry {
-    bool is_dir;
-    std::string hash; // empty if directory
-};
 
 
-using ProjectIndex =
-    std::unordered_map<std::string, IndexEntry>;
 
-*/
 
 ProjectIndex load_index(const std::string& index_path) {
 
     ProjectIndex index;
+
     std::ifstream in(index_path);
 
     if (!in) return index; // first commit will have index empty
@@ -34,6 +24,7 @@ ProjectIndex load_index(const std::string& index_path) {
         // path|type|hash
         auto p1 = line.find('|');
         auto p2 = line.find('|', p1 + 1);
+        auto p3 = 3;
 
         std::string path = line.substr(0, p1);
         std::string type = line.substr(p1 + 1, p2 - p1 - 1);
@@ -80,7 +71,7 @@ void remove_deleted(ProjectIndex& index, const std::set<std::string>& current_fi
 
 
 
-// TODO: is gonna be called on a commit and on a pull
+// is called on a commit and on a pull
 void save_index(const std::string& index_path, const ProjectIndex& index, const std::string& project_root) {
     
     std::string tmp = index_path + ".tmp";

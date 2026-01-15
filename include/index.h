@@ -6,6 +6,8 @@
 #include <unordered_map>
 
 
+// used to store index entrys
+// path is stored as the key of the unordered_map where this is used
 struct IndexEntry {
     bool is_dir;
     std::string hash;
@@ -17,6 +19,7 @@ using ProjectIndex =
     std::unordered_map<std::string, IndexEntry>;
 
 
+// used to load index
 ProjectIndex load_index(const std::string& index_path);
 
 

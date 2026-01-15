@@ -37,6 +37,12 @@ uint64_t htonll(uint64_t v) {
 #endif
 }
 
+
+
+
+
+
+
 /*
   Why do i not use the host to network translation every where i send? because the Endianness conversion is only for fixed width integers that represent numbers
   like uint32_t and uint64_t. File names and its contents or buffers cant be convert to so
@@ -125,18 +131,22 @@ int send_files(int sock, std::string& file_to_send) {
 int file_sender(int sock, std::string files_to_commit) {
 
   std::ifstream file_info(files_to_commit, std::ios::binary);
-  if (!file_info) {
-    perror("failed to open file");
-    exit(EXIT_FAILURE);
-  }
-
   if (!file_info.is_open()) {
     perror("failed to open Files to commit\n");
     return EXIT_FAILURE;
   }
   
   std::string file_name;
+  bool first = true;
+
   while (std::getline(file_info, file_name)) {
+
+    // to skip first line that just contains # project_root=/.../..
+    if (first) {
+      first = false;
+      continue;
+    }
+
     while (1) {
       if (!file_name.empty()) // making sure we dont print when we in the last line. last line has nothing but its our way of stoping the receiver from waiting on more files
         std::cout << "preparing to send file: ||| " << file_name << " |||" << std::endl;
