@@ -7,8 +7,7 @@
 
 
 
-#include "add.h"
-#include "commit.h"
+#include "staging.h"
 
 #include "file_sender.h"
 #include "protocol.h"

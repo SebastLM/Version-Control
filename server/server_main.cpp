@@ -3,8 +3,9 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <stdexcept>
+#include <iostream>
 
-#include <file_sender.h>
+#include "file_sender.h"
 #include "file_receiver.h"
 #include "protocol.h"
 #include "send_all_recv_all.h"
@@ -68,8 +69,46 @@ int main  () {
         printf("still on work\n");
         break;
 
+
+
+      // in case the remote peer wants to commit 
       case MsgType::COMMIT_FILES:
-        file_receiver(new_socket);
+
+        int line = 0;
+        bool end = false;
+        while(1) {
+
+          if (end) break;
+
+          Action action;
+          recv_all(new_socket, &action, sizeof(action));
+          line ++;
+
+          switch (action) {
+
+            case Action::Remove:
+              if (recv_removed_entry(new_socket))
+                end = true;
+              break;
+            
+            case Action::AddFile:
+              if (recv_file(new_socket, 0))
+                end = true;
+              break;
+            
+            case Action::AddDir:
+              if (recv_file(new_socket, 1))
+                end = true;
+              break;
+
+            default:
+              std::cout << "Undefined behaviour, error in line " << line << "of stage file " << std::endl 
+                        << "consider manualy fixing the line" << std::endl;
+              break;
+          }
+        }
+
+        close(new_socket); 
         break;
 
       case MsgType::PULL_FILES:

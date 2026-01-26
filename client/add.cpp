@@ -2,7 +2,6 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
-#include <vector>
 #include <unistd.h>
 
 
@@ -10,7 +9,7 @@
 #include "hash.h"
 #include "path_trim.h"
 #include "index.h"
-#include "add.h"
+#include "staging.h"
 
 
 
@@ -100,16 +99,14 @@ int add() {
    */
     std::string stage_path = "/active_projects/" + project_name + "/stage";
 
-    // rewriting the file everytime to avoid having duplicate paths with different hashes
-    // when sending if we had repeated entrys, we would send the correct files but the hashes wouldnt match; that would cause a dead loop
-    std::ofstream stage(stage_path, std::ios::trunc); 
-    
+    // allows adding multiple times
+    // handling repeated entries on the file sender it self
+    std::ofstream stage(stage_path, std::ios::app); 
+
     if (!stage.is_open()) {
         perror("failed to open Files to commit\n");
         return EXIT_FAILURE;
     }
-    stage << "# project_root=" << project_name << "\n";
-
 
     for (const auto& [path, entry] : new_index) {
         
@@ -147,10 +144,10 @@ int add() {
       if (!old_index[path].visited) {
       
         std::string type = "file";
-            if (new_index[path].is_dir)
+        if (new_index[path].is_dir)
             type = "dir";
 
-        std::string stage_file = path + "|" + type + "|" + old_index[path].hash + "|0";
+        std::string stage_file = path + "|" + type + "|0";
         stage << stage_file << "\n";
       }
     }

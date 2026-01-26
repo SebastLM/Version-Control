@@ -17,6 +17,8 @@
 
 #define MAX_CHUNK_SIZE 64 * 1024
 
+
+
 /*
  
   TODO: the files will be moved to a dir when changed.
@@ -41,21 +43,25 @@ uint64_t htonll(uint64_t v) {
 
 
 
-
-
 /*
   Why do i not use the host to network translation every where i send? because the Endianness conversion is only for fixed width integers that represent numbers
   like uint32_t and uint64_t. File names and its contents or buffers cant be convert to so
 */
 namespace send_all_recv_all {
 
+
+
+int send_file(int sock, std::string& file_to_send, bool is_dir) {
   
-int send_files(int sock, std::string& file_to_send) {
-  
-  std::ifstream file(file_to_send, std::ios::binary);
-  if (!file && !file_to_send.empty()) {
-    printf("opening the file for commit failed\n");
-    return 0;
+  std::ifstream file;
+
+  if (!is_dir) {
+    file.open(file_to_send, std::ios::binary);
+
+    if (!file && !file_to_send.empty()) {
+      printf("opening the file for commit failed\n");
+      return 0;
+    }
   }
 
   // file_name(file_to_send);
@@ -64,8 +70,10 @@ int send_files(int sock, std::string& file_to_send) {
   uint32_t name_len = file_to_send.size();
   uint32_t net_name_len = htonl(name_len);
 
-  if (!file_to_send.empty()) 
-    std::cout << "\tsending " << file_to_send << " name length: " << file_to_send.size() << std::endl;
+  if (!is_dir) {
+    if (!file_to_send.empty()) 
+      std::cout << "\tsending " << file_to_send << " name length: " << file_to_send.size() << std::endl;
+  }
 
   send_all(sock, &net_name_len, sizeof(net_name_len));
   
@@ -75,7 +83,12 @@ int send_files(int sock, std::string& file_to_send) {
   }
   std::cout << "\tsending file name " <<  file_to_send << std::endl;
   send_all(sock, file_to_send.data(), name_len);
-  
+
+  // in case we are sending a dir, nothing more is needed
+  if (is_dir)
+    return 1;
+
+
   // allow for seaking a position in a file
   // its included in the fstream header
   file.seekg(0, std::ios::end); // set the position to the read in the stream 0 from the end(std::ios::end), so basically the file pointer is now at the end of the file
@@ -124,45 +137,18 @@ int send_files(int sock, std::string& file_to_send) {
   return 1;
 }
 
-}
 
+int send_remove_entry(int sock, std::string& entry_to_remove) {
 
+  uint32_t name_len = entry_to_remove.size();
+  uint32_t net_name_len = htonl(name_len);
 
-int file_sender(int sock, std::string files_to_commit) {
-
-  std::ifstream file_info(files_to_commit, std::ios::binary);
-  if (!file_info.is_open()) {
-    perror("failed to open Files to commit\n");
-    return EXIT_FAILURE;
-  }
+  send_all(sock, &net_name_len, sizeof(net_name_len));
   
-  std::string file_name;
-  bool first = true;
+  std::cout << "\tsending entry for removal " <<  entry_to_remove << std::endl;
+  send_all(sock, entry_to_remove.data(), name_len);
 
-  while (std::getline(file_info, file_name)) {
-
-    // to skip first line that just contains # project_root=/.../..
-    if (first) {
-      first = false;
-      continue;
-    }
-
-    while (1) {
-      if (!file_name.empty()) // making sure we dont print when we in the last line. last line has nothing but its our way of stoping the receiver from waiting on more files
-        std::cout << "preparing to send file: ||| " << file_name << " |||" << std::endl;
-   /*
-      read line logic to convert it into a file for reading 
-   */ 
-    
-    int transfer_value = 0; 
-    transfer_value = send_all_recv_all::send_files(sock, file_name);
-
-    if (transfer_value) break;
-    std::cerr << "error sending the file" << file_name << ",trying again" << std::endl;
-    }
-  }
-  std::cout << "\n\nending the file transfer successfully" << std::endl;
-  file_info.close();
-  close(sock);
-  exit(EXIT_SUCCESS);
 }
+
+
+;}

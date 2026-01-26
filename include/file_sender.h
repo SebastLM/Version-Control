@@ -3,6 +3,8 @@
 
 #include <fstream>
 
-int file_sender(int sock, std::string files_to_commit);
+int send_file(int sock, std::string& file_to_send, bool is_dir);
+
+int send_remove_entry(int sock, std::string& entry_to_remove);
 
 #endif

@@ -1,8 +1,10 @@
 #ifndef FILE_RECEIVER_H
 #define FILE_RECEIVER_H
 
-  
-int file_receiver(int sock);
+
+int recv_file(int sock, bool is_dir);
+
+int recv_removed_entry(int sock);
 
 #endif 
 

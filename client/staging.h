@@ -3,6 +3,7 @@
 
 
 int commit(int sock);
+int add();
 
 
 #endif

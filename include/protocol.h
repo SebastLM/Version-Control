@@ -10,3 +10,9 @@ enum class MsgType : uint8_t {
   // leaving open more possibilities, for now want to implement this
 };
 
+enum class Action : uint8_t{
+    AddFile = 1,
+    AddDir = 2,
+    Remove = 3
+};
+
