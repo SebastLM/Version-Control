@@ -157,4 +157,5 @@ int add() {
     save_index(index_path, new_index, project_name);
     
     }
+  return 0;
 }

@@ -10,6 +10,66 @@
 #include "protocol.h"
 #include "send_all_recv_all.h"
 
+
+/*
+  TODO: implement threading 
+*/
+
+
+
+int commit_action(int new_socket) {
+
+  int line = 0;
+  while(1) {
+
+    Action action;
+    if (recv_all(new_socket, &action, sizeof(action)) <= 0) {
+      std::cerr << "Fatal: Connection lost." << std::endl;
+      return -1;
+    }
+
+    line ++;
+    
+    if (action == Action::EndCommit) {
+      std::cout << "End of Commit." << std::endl;
+      return 0;
+    }
+    
+    int result = 0;
+    switch (action) {
+
+      case Action::Remove:
+        result = recv_removed_entry(new_socket);
+        break;
+      
+      case Action::AddFile:
+        result = recv_file(new_socket, 0);
+        break;
+      
+      case Action::AddDir:
+        result = recv_file(new_socket, 1);
+        break;
+      
+      case Action::EndCommit:
+        std::cout << "Commit was done successfully." << std::endl;
+        return 0;
+
+      default:
+        std::cerr << "FATAL: Protocol desync at line " << line << " of user stage file" << std::endl;
+        break;
+    }
+    
+    if (result == 1) {
+      std::cout << "WARNING: Undefined behaviour, error in line **" << line << "** of stage file " << std::endl 
+                  << "consider manualy fixing the line" << std::endl;
+    }
+
+  }
+  return 0;
+}
+
+
+
 int main  () {
    int port = 47195 , new_socket;
   struct sockaddr_in address;
@@ -73,43 +133,12 @@ int main  () {
 
       // in case the remote peer wants to commit 
       case MsgType::COMMIT_FILES:
-
-        int line = 0;
-        bool end = false;
-        while(1) {
-
-          if (end) break;
-
-          Action action;
-          recv_all(new_socket, &action, sizeof(action));
-          line ++;
-
-          switch (action) {
-
-            case Action::Remove:
-              if (recv_removed_entry(new_socket))
-                end = true;
-              break;
-            
-            case Action::AddFile:
-              if (recv_file(new_socket, 0))
-                end = true;
-              break;
-            
-            case Action::AddDir:
-              if (recv_file(new_socket, 1))
-                end = true;
-              break;
-
-            default:
-              std::cout << "Undefined behaviour, error in line " << line << "of stage file " << std::endl 
-                        << "consider manualy fixing the line" << std::endl;
-              break;
-          }
-        }
+      { 
+        commit_action(new_socket);
 
         close(new_socket); 
         break;
+      }
 
       case MsgType::PULL_FILES:
         printf("still on work\n");

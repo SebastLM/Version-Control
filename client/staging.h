@@ -1,9 +1,8 @@
-#ifndef COMMIT_H
-#define COMMIT_H
-
+#ifndef STAGING_H
+#define STAGING_H
 
 int commit(int sock);
-int add();
 
+int add();
 
 #endif

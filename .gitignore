@@ -6,3 +6,6 @@ thinking
 /client/client
 README.md
 files_to_transfer/
+obj/
+client
+server

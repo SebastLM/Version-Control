@@ -55,7 +55,6 @@ int commit(int sock) {
         // path|type|hash
         auto p1 = line.find('|');
         auto p2 = line.find('|', p1 + 1);
-        auto p3;
 
         std::string path = line.substr(0, p1);
         std::string type = line.substr(p1 + 1, p2 - p1 - 1);
@@ -82,55 +81,73 @@ int commit(int sock) {
     }
 
     int line_file = 0;
+    std::string desync_path;
+    Action desync_action;
+
     for (const auto& [path, action] : commit_plan) {
       
       // no need to worry about endianess since its a 1 byte stream
       send_all(sock, &action, sizeof(action));
       line_file++;
-      
+     
+      int result = 0;
       switch (action) {
         case Action::Remove:
-          send_remove_entry(sock, path);
+          result = send_remove_entry(sock, path);
           break;
         
         case Action::AddFile:
-          send_file(sock, path, 0);
+          result = send_file(sock, path, 0);
           break;
         
         case Action::AddDir:
-          send_file(sock, path, 1);
+          result = send_file(sock, path, 1);
           break;
 
         default:
-          std::cout << "Undefined behaviour, error in line " << line_file << "of stage file: " << path << std::endl 
+          std::cerr << "Undefined behaviour, error in line " << line_file << "of stage file: " << path << std::endl 
                     << "consider manualy fixing the line" << std::endl;
           break;
-        }
-        
-    }
+      }
 
+      if (result != 0) {
+        /*
+          TODO: handle file desync logic here... IMP
+        */
+        std::cerr << "WARNING: Failed to process " << path << "at line " << line_file << std::endl;
+      }
+    }
+    
+    Action end_signal = Action::EndCommit;
+    if (send_all(sock, &end_signal, sizeof(end_signal)) < 0) {
+      std::cerr << "Failed to send EndCommit signal" << std::endl;
+      return 1;
+    }
+    std::cout << "\nCommit finished." << std::endl;
 
 
     // pass the socket set up here and create the auxiliar functions in file_sender for the different actions, like remove, ... 
     // call file sender to handle stage file and commit files to server  
 
     // clearing stage file after commit
-    std::ofstream stage(stage_path, std::ios::trunc);
-    if (!stage.is_open()) {
-        std::cout << "failed to open file for cleaning commit stage" << std::endl;
-        std::cout << "consider manualy cleaning to avoid further errors: " + stage_path << std::endl;
-        return 1;
+    std::ofstream file(stage_path, std::ios::trunc);
+    if (!file.is_open()) {
+        std::cout << "WARNING: failed to open file for cleaning commit stage" << std::endl;
+        std::cout << "consider manualy cleaning the stage file to avoid further errors: " + stage_path << std::endl;
+        return -1;
     }
-    stage.close();
+    file.close();
 
 
 
 
 
 
-
+  }
 
     /*
     TODO: later handle sending messages
     */
+
+  return 0;
 }

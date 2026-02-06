@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <cstring>
 
 
 
@@ -22,13 +23,13 @@ int main(int argc, char* argv[]) {
     std::cout << "see documentation for more" << std::endl;
     return EXIT_FAILURE;
   }
-  if (argv[1] == "add") {
+  if (strcmp(argv[1], "add") == 0) {
     add();
     return EXIT_SUCCESS;
 
   } else 
   
-  if (argv[1] == "commit") {
+  if (strcmp(argv[1], "commit") == 0) {
 
     ssize_t sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {

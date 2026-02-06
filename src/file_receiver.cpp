@@ -32,9 +32,6 @@ uint64_t ntohll(uint64_t v) {
 namespace fs = std::filesystem;
 
 
-namespace send_all_recv_all {
-
-
 
   
 // the purpose of this function is to keep on receving the commited files from a user
@@ -164,9 +161,6 @@ int recv_removed_entry(int sock) {
 
   return 0;
 }
-
-} // namespace send_all_recv_all
-
 
 
 

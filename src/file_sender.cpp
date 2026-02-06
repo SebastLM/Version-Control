@@ -47,11 +47,9 @@ uint64_t htonll(uint64_t v) {
   Why do i not use the host to network translation every where i send? because the Endianness conversion is only for fixed width integers that represent numbers
   like uint32_t and uint64_t. File names and its contents or buffers cant be convert to so
 */
-namespace send_all_recv_all {
 
 
-
-int send_file(int sock, std::string& file_to_send, bool is_dir) {
+int send_file(int sock, const std::string& file_to_send, bool is_dir) {
   
   std::ifstream file;
 
@@ -60,7 +58,7 @@ int send_file(int sock, std::string& file_to_send, bool is_dir) {
 
     if (!file && !file_to_send.empty()) {
       printf("opening the file for commit failed\n");
-      return 0;
+      return 1;
     }
   }
 
@@ -74,19 +72,26 @@ int send_file(int sock, std::string& file_to_send, bool is_dir) {
     if (!file_to_send.empty()) 
       std::cout << "\tsending " << file_to_send << " name length: " << file_to_send.size() << std::endl;
   }
-
-  send_all(sock, &net_name_len, sizeof(net_name_len));
+  
+  if (send_all(sock, &net_name_len, sizeof(net_name_len)) < 0) {
+    std::cerr << "Failed to send Name_len of " << file_to_send << std::endl;
+    return 1; 
+  }
   
   if (file_to_send.empty()) {
     file.close();
     return 1;
   }
+
   std::cout << "\tsending file name " <<  file_to_send << std::endl;
-  send_all(sock, file_to_send.data(), name_len);
+  if (send_all(sock, file_to_send.data(), name_len) < 0) {
+    std::cerr << "Failed to send file_name " << file_to_send << std::endl;
+    return 1;
+  }
 
   // in case we are sending a dir, nothing more is needed
   if (is_dir)
-    return 1;
+    return 0;
 
 
   // allow for seaking a position in a file
@@ -97,7 +102,10 @@ int send_file(int sock, std::string& file_to_send, bool is_dir) {
   
   std::cout << "\tsending file size: " << size_file << std::endl;
   size_file = htonll(size_file);
-  send_all(sock, &size_file, sizeof(size_file));// sending the size of the file so it knows how much it will take
+  if (send_all(sock, &size_file, sizeof(size_file)) < 0) {// sending the size of the file so it knows how much it will take
+    std::cerr << "Failed to send size of file: " << file_to_send << std::endl;
+    return 1; 
+  }
 
   char file_buf[MAX_CHUNK_SIZE];
   int i = 1; 
@@ -129,26 +137,38 @@ int send_file(int sock, std::string& file_to_send, bool is_dir) {
   recv_all(sock, &value, sizeof(int));
   if (!value) {
     file.close();
-    return 0;
+    return 1;
   }
 
   std::cout << "\n\n";
   file.close();
-  return 1;
+  return 0;
 }
 
 
-int send_remove_entry(int sock, std::string& entry_to_remove) {
+
+
+
+
+int send_remove_entry(int sock, const std::string& entry_to_remove) {
 
   uint32_t name_len = entry_to_remove.size();
   uint32_t net_name_len = htonl(name_len);
 
-  send_all(sock, &net_name_len, sizeof(net_name_len));
+  if (send_all(sock, &net_name_len, sizeof(net_name_len)) < 0) {
+    std::cerr << "Failed to send Name_len of " << entry_to_remove << std::endl;
+    return 1;
+  }
   
   std::cout << "\tsending entry for removal " <<  entry_to_remove << std::endl;
-  send_all(sock, entry_to_remove.data(), name_len);
-
+  
+  if (send_all(sock, entry_to_remove.data(), name_len) < 0) {
+    std::cerr << "Failed to send Name of " << entry_to_remove << " to be removed" << std::endl;
+    return 1; 
+  }
+  
+  return 0;
 }
 
 
-;}
+
