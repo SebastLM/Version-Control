@@ -70,6 +70,9 @@ int commit_action(int new_socket) {
 
 
 
+
+
+
 int main  () {
    int port = 47195 , new_socket;
   struct sockaddr_in address;
