@@ -9,26 +9,21 @@
 
 
 #include "staging.h"
+
 #include "file_sender.h"
 #include "protocol.h"
 #include "send_all_recv_all.h"
 
 
-
 int main(int argc, char* argv[]) { 
 
   
-  if (argc < 2){
+  if (argc != 2){
     std::cout << "error, usage should be ./(...) add,  or  ./(...) commit." << std::endl;
     std::cout << "see documentation for more" << std::endl;
     return EXIT_FAILURE;
   }
-  if (strcmp(argv[1], "create") == 0) { 
-    std::string project_dir = argv[2];
-    create_project(project_dir);
-  }
-    
-  else if (strcmp(argv[1], "add") == 0) {
+  if (strcmp(argv[1], "add") == 0) {
     add();
     return EXIT_SUCCESS;
 
@@ -59,3 +54,4 @@ int main(int argc, char* argv[]) {
     commit(sock);
   }
 }
+

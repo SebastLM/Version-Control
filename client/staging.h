@@ -5,4 +5,6 @@ int commit(int sock);
 
 int add();
 
+int create_project(std::string new_project_name);
+
 #endif

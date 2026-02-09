@@ -1,0 +1,3 @@
+Handle finding different projects under one same root project dir. this is needed since i can now use the fact that the index file is stored in root project folder. i can now tell where the root project dir is....
+
+add a .ignore filter to the loop in add.cpp so i can have a similar functionality to .gitignore

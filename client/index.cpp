@@ -1,9 +1,9 @@
 #include <fstream>
 #include <set>
 #include <unordered_map>
+#include <filesystem>
 
 #include "index.h"
-
 
 
 
@@ -69,16 +69,21 @@ void remove_deleted(ProjectIndex& index, const std::set<std::string>& current_fi
 }
 
 
+namespace fs = std::filesystem;
+
 
 // is called on a commit and on a pull
 void save_index(const std::string& index_path, const ProjectIndex& index, const std::string& project_root) {
-    
-    std::string tmp = index_path + ".tmp";
-    std::ofstream out(tmp, std::ios::trunc);
 
-    if (!out)
-        throw std::runtime_error("cannot write index");
+    // This prevents corruption if the program crashes mid-write
+    std::string tmp_path = index_path + ".tmp";
+    std::ofstream out(tmp_path, std::ios::trunc | std::ios::binary);
 
+    if (!out) {
+        throw std::runtime_error("Cannot open index file for writing: " + tmp_path);
+    }
+
+    // header
     out << "# project_root=" << project_root << "\n";
 
     for (const auto& [path, entry] : index) {
@@ -90,5 +95,11 @@ void save_index(const std::string& index_path, const ProjectIndex& index, const 
 
     out.close();
 
-    std::rename(tmp.c_str(), index_path.c_str());
+    // renaming the file
+    std::error_code ec;
+    fs::rename(tmp_path, index_path, ec);
+    if (ec) {
+        fs::remove(tmp_path); // Cleanup
+        throw std::runtime_error("Failed to finalize index: " + ec.message());
+    }
 }

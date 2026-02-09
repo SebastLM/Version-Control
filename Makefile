@@ -17,7 +17,8 @@ $(SRC_DIR)/path_trim.cpp
 CLIENT_FILES := $(CLIENT_DIR)/client_main.cpp \
 $(CLIENT_DIR)/add.cpp \
 $(CLIENT_DIR)/commit.cpp \
-$(CLIENT_DIR)/index.cpp
+$(CLIENT_DIR)/index.cpp \
+$(CLIENT_DIR)/create_project.cpp
 
 SERVER_FILES := $(SERVER_DIR)/server_main.cpp
 

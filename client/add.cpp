@@ -2,7 +2,14 @@
 #include <iostream>
 #include <filesystem>
 #include <string>
+
+#ifdef _WIN32 
+    inline int access(const char *pathname, int mode) {
+        return _access(pathname, mode);
+    }
+#else
 #include <unistd.h>
+#endif
 
 
 #include "protocol.h"
