@@ -1,3 +1,14 @@
 Handle finding different projects under one same root project dir. this is needed since i can now use the fact that the index file is stored in root project folder. i can now tell where the root project dir is....
 
 add a .ignore filter to the loop in add.cpp so i can have a similar functionality to .gitignore
+
+
+
+IMP: 
+  - MAke sure then when "add ." we truncate the stage file, when adding a specific file we only append
+  - enable add for a specific files and not the whole project, like:
+      ./(...) add <file1> <file2> <..>
+  - AS OF NOW THE FIRST COMMIT DOESNT WORK PROPERLY IF THE PROJECT DIR IS ALREADY WITH FILES, SINCE IT ONLY STORES THE CURRENT FILE DIFF IN THE DIR
+ 
+  
+  - change the commit(/file_sender and receiver to work with the new changes to relative path use)

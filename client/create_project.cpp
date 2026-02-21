@@ -25,6 +25,7 @@ int create_project(std::string new_project_name) {
   
   bool dot = false;
   try {
+
     if (new_project_name != ".") { 
 
       new_project_root = new_project_root + "/" + new_project_name; 

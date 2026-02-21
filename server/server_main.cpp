@@ -152,3 +152,19 @@ int main  () {
     }
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*TODO: IMP: USE space_info from filesystem to find space in the filesystem to know where to store the files*/

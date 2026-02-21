@@ -6,6 +6,8 @@
 #include <string>
 #include <cstring>
 
+#include <vector>
+
 
 
 #include "staging.h"
@@ -29,7 +31,11 @@ int main(int argc, char* argv[]) {
   }
     
   else if (strcmp(argv[1], "add") == 0) {
-    add();
+
+    // vector constructor. Receives first iterator memory address and the past-the-end address 
+    std::vector<std::string> files(argv + 2, argv + argc);
+
+    add(files);
     return EXIT_SUCCESS;
 
   } else 
