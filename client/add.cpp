@@ -124,7 +124,7 @@ void change_stage_file_line(std::string to_change,
 
   std::string new_line = to_change + "|" + type + "|" + file_hash + "|" + add_rm;
 
-  for (std::string line : stage_lines){
+  for (std::string& line : stage_lines){
     // if we find line that contains our value
     if (line.rfind(to_change, 0) == 0) {
       line = new_line;
@@ -142,38 +142,6 @@ void change_stage_file_line(std::string to_change,
     stage_lines.insert(stage_lines.begin() + line_to_insert + 1, new_line);
   }
 }
-
-
-
-
-
-
-
-// write changed lines back to actual stage file
-void write_back_stage(const std::string stage_path, std::vector<std::string> stage_lines) {
-  
-  // This prevents corruption if the program crashes mid-write
-  std::string tmp_path = stage_path + ".tmp";
-  std::ofstream out(tmp_path, std::ios::trunc | std::ios::binary);
-  if (!out.is_open()) {
-    perror("failed to open stage File\n");
-    return;
-  }
-
-  for (std::string line : stage_lines) {
-    out << line << "\n" ;
-  }
-
-  // renaming the file
-  std::error_code ec;
-  fs::rename(tmp_path, stage_path, ec);
-  if (ec) {
-      fs::remove(tmp_path); // Cleanup
-      throw std::runtime_error("Failed to finalize index: " + ec.message());
-  }
-}
-
-
 
 
 
@@ -233,9 +201,10 @@ void add_file(const std::string& project_root_path,
     // else it will just create a new entry
     old_index[to_change] = e;
   }
- 
-  // replace old line if existed, else append to end
-  change_stage_file_line(to_change, type, hash, add_rm, stage_lines); 
+  // file empty -> dont add
+  if (hash != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+    // replace old line if existed, else append to end
+    change_stage_file_line(to_change, type, hash, add_rm, stage_lines); 
 }
 
 
@@ -342,6 +311,32 @@ int add_dot(const std::string& project_root_path,
 
 
 
+// write changed lines back to actual stage file
+void write_back_stage(const std::string stage_path, std::vector<std::string> stage_lines) {
+  
+  // This prevents corruption if the program crashes mid-write
+  std::string tmp_path = stage_path + ".tmp";
+  std::ofstream out(tmp_path, std::ios::trunc | std::ios::binary);
+  if (!out.is_open()) {
+    perror("failed to open stage File\n");
+    return;
+  }
+
+  for (std::string line : stage_lines) {
+    out << line << "\n" ;
+  }
+
+  // renaming the file
+  std::error_code ec;
+  fs::rename(tmp_path, stage_path, ec);
+  if (ec) {
+      fs::remove(tmp_path); // Cleanup
+      throw std::runtime_error("Failed to finalize index: " + ec.message());
+  }
+}
+
+
+
 
 
 
@@ -374,13 +369,12 @@ int add(std::vector<std::string> files_to_commit) {
       TODO: need to make a .ignore file 
       TODO: NEED to make sure that users dont add a file for commiting that is already in stage file
          - for that, will simply need to load the stage to the vector and then verify its existence there as well as if the hash changed or not
-      TODO: AS OF NOW IF THE FILE ALREADY EXISTS IN THE STAGE FILE WE ARE NOT changing the hash value in the stage, which is problematic; need to handle that or it will generate errors when sending the file
-              this happens when i "add ." and the file has been changed
-      TODO: if the file exists but without anythin in it it wont be added for commiting 
     */
-    if (file == "." && size(files_to_commit) == 1)
+    if (file == ".") {
       add_dot(project_root_path, where_called, old_index, stage_lines);
-    
+      if (where_called == project_root_path)
+        break;
+    }
     else {
       // allows user to input path to file starting with slash("/") or without it
       std::string slash = "";
