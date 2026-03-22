@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
     
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
-    inet_pton(AF_INET, "192.168.1.111", &serv_addr.sin_addr);
+    inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr);
     serv_addr.sin_port = htons(47195);
     
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {

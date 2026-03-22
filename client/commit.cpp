@@ -73,39 +73,15 @@ void commit_action(std::string stage_path, std::unordered_map<std::string, Actio
 
 
 
-
-
-int commit(int sock) {
-    
-  std::unordered_map<std::string, Action> commit_plan;
-
-  /*
-      TODO: for now the commits only work if done from the base project dir, change that
-  */
-
-  // obtain the current working dir from where the executable is called
-  fs::path c_work_dir = fs::current_path();
-  std::string project_name = c_work_dir.generic_string();
-  file_name(project_name);
-
-  std::string stage_path = "/active_projects/" + project_name + "/stage";
-  
-  const char* stage_path_tmp = stage_path.c_str();
-  int res = access(stage_path_tmp, R_OK);
-  if (res < 0) {
-    // in case the file doesnt exist
-    if (errno == ENOENT) {
-      perror("project doesnt exist");
-      return EXIT_FAILURE;
-    }
-  }
-
-  // avoid repetitions in files sent for adding 
-  commit_action(stage_path, commit_plan);
+int commit_remote(std::unordered_map<std::string, Action> commit_plan, int sock) {
 
   int line_file = 0;
   std::string desync_path;
-  Action desync_action;
+  // TODO: too handle the desync logic, the remote needs to return what it got
+  // this way we can verify that everything went acordingly
+  // in case of the actual file sending, we just need to confirm if the hash matched on the other side( if the remote returns "OK" we just accept it)
+  //IMP TODO: now in the remote so we dont just send everything again, we need to start sending a flag from here saying which operation is being executed
+  Action desync_action;  
 
   for (const auto& [path, action] : commit_plan) {
     
@@ -140,6 +116,43 @@ int commit(int sock) {
       std::cerr << "WARNING: Failed to process " << path << "at line " << line_file << std::endl;
     }
   }
+}
+
+
+
+
+
+
+int commit(int sock) {
+    
+  std::unordered_map<std::string, Action> commit_plan;
+
+  /*
+      TODO: for now the commits only work if done from the base project dir, change that
+  */
+
+  // obtain the current working dir from where the executable is called
+  fs::path c_work_dir = fs::current_path();
+  std::string project_name = c_work_dir.generic_string();
+  file_name(project_name);
+
+  std::string stage_path = "/active_projects/" + project_name + "/stage";
+  
+  const char* stage_path_tmp = stage_path.c_str();
+  int res = access(stage_path_tmp, R_OK);
+  if (res < 0) {
+    // in case the file doesnt exist
+    if (errno == ENOENT) {
+      perror("project doesnt exist");
+      return EXIT_FAILURE;
+    }
+  }
+
+  // avoid repetitions in files sent for adding 
+  commit_action(stage_path, commit_plan);
+
+  // commit the file to the remote repo
+  commit_remote(commit_plan, sock);
   
   Action end_signal = Action::EndCommit;
   if (send_all(sock, &end_signal, sizeof(end_signal)) < 0) {
