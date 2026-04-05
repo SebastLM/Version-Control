@@ -12,7 +12,8 @@ COMMON_SRC := $(SRC_DIR)/send_all_recv_all.cpp \
 $(SRC_DIR)/hash.cpp \
 $(SRC_DIR)/file_receiver.cpp \
 $(SRC_DIR)/file_sender.cpp \
-$(SRC_DIR)/path_trim.cpp
+$(SRC_DIR)/path_trim.cpp \
+$(SRC_DIR)/file_locker.cpp
 
 CLIENT_FILES := $(CLIENT_DIR)/client_main.cpp \
 $(CLIENT_DIR)/add.cpp \

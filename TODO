@@ -1,0 +1,12 @@
+
+TODO: 
+  1. Need to handle desync logic.
+
+  2. Start implementing multithreading in the server side, using the locks created multithreading
+  
+  3. store the changes in objects (when staging save changes in objects, almost like a snapshot)
+    /* 
+     as of now if someone just changes the files after staging and then just commits, it will generate errors, because the hash will differ from the actual file.
+     need to try implementing like git that saves the changes in objects.
+     Leaving it for last because there are a lot of nuisances that i still dont know how to about that
+    */

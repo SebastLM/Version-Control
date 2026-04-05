@@ -54,13 +54,17 @@ int recv_file(int sock, bool is_dir) {
   //receive the actual file name
   recv_all(sock, name.data(), name_len);
 
-  /*
-  TODO: in the future maybe change the directory creation.
-        As of now it will create a dir with full permissions...
-  */
+  // making sure i am not overwriting an actual system file
+  fs::perms perm = fs::status(name).permissions();
+  if ((perm & fs::perms::owner_write) == fs::perms::none) {
+    std::cout << "File is a read only system file. Aborting..." << std::endl;
+    return 0;
+  }
+
   if (is_dir) {
     fs::create_directory(name);
-    return 0;
+    fs::permissions(name, fs::perms::owner_write, fs::perm_options::remove);
+    return 1;
   }
   std::cout << "file name: |||" << name << "|||" << std::endl;
 
@@ -80,6 +84,7 @@ int recv_file(int sock, bool is_dir) {
       std::cerr << "failed to create directories for file: " << name << "\n" 
                 << er.message() << std::endl;
   }
+  fs::permissions(name, fs::perms::none);
 
   // initialize a output file stream to create or overwrite a file. writing data in binary mode
   std::ofstream file_out(name, std::ios::binary);
@@ -92,9 +97,7 @@ int recv_file(int sock, bool is_dir) {
     size_t file_chunk = std::min<size_t>(sizeof(file_buf), file_size);
     recv_all(sock, file_buf, file_chunk);
     std::cout << "\treceived chunk: " << i << std::endl;
-    /*
-      TODO: need to make sure i am not overwriting an actual system file;
-    */
+
     file_out.write(file_buf, file_chunk);
     file_size -= file_chunk;
     i++;
@@ -128,7 +131,7 @@ int recv_file(int sock, bool is_dir) {
   */
   std::cout << "\n\n";
 
-  return 0;
+  return 1;
 }
 
 

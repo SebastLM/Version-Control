@@ -14,6 +14,7 @@
 #include "hash.h"
 #include "file_sender.h"
 #include "path_trim.h"
+#include "file_locker.h"
 
 #define MAX_CHUNK_SIZE 64 * 1024
 
@@ -41,16 +42,21 @@ uint64_t htonll(uint64_t v) {
 
 
 
+// objects needed for locking
+SystemWideLock sys_lock;
+ThreadLock thread_Lock;
 
 
 /*
   Why do i not use the host to network translation every where i send? because the Endianness conversion is only for fixed width integers that represent numbers
   like uint32_t and uint64_t. File names and its contents or buffers cant be convert to so
 */
-
-
 int send_file(int sock, const std::string& file_to_send, bool is_dir) {
+ 
   
+  // locks the file for reading (false == reading)
+  GuardLock guardLock(sys_lock, thread_Lock, file_to_send, false);
+
   std::ifstream file;
 
   if (!is_dir) {
@@ -58,7 +64,7 @@ int send_file(int sock, const std::string& file_to_send, bool is_dir) {
 
     if (!file && !file_to_send.empty()) {
       printf("opening the file for commit failed\n");
-      return 1;
+      return 0;
     }
   }
 
@@ -75,23 +81,23 @@ int send_file(int sock, const std::string& file_to_send, bool is_dir) {
   
   if (send_all(sock, &net_name_len, sizeof(net_name_len)) < 0) {
     std::cerr << "Failed to send Name_len of " << file_to_send << std::endl;
-    return 1; 
+    return 0; 
   }
   
   if (file_to_send.empty()) {
     file.close();
     return 1;
   }
-
+ 
   std::cout << "\tsending file name " <<  file_to_send << std::endl;
   if (send_all(sock, file_to_send.data(), name_len) < 0) {
     std::cerr << "Failed to send file_name " << file_to_send << std::endl;
-    return 1;
+    return 0;
   }
 
   // in case we are sending a dir, nothing more is needed
   if (is_dir)
-    return 0;
+    return 1;
 
 
   // allow for seaking a position in a file
@@ -104,7 +110,7 @@ int send_file(int sock, const std::string& file_to_send, bool is_dir) {
   size_file = htonll(size_file);
   if (send_all(sock, &size_file, sizeof(size_file)) < 0) {// sending the size of the file so it knows how much it will take
     std::cerr << "Failed to send size of file: " << file_to_send << std::endl;
-    return 1; 
+    return 0; 
   }
 
   char file_buf[MAX_CHUNK_SIZE];
@@ -142,7 +148,7 @@ int send_file(int sock, const std::string& file_to_send, bool is_dir) {
 
   std::cout << "\n\n";
   file.close();
-  return 0;
+  return 1;
 }
 
 
@@ -157,17 +163,17 @@ int send_remove_entry(int sock, const std::string& entry_to_remove) {
 
   if (send_all(sock, &net_name_len, sizeof(net_name_len)) < 0) {
     std::cerr << "Failed to send Name_len of " << entry_to_remove << std::endl;
-    return 1;
+    return 0;
   }
   
   std::cout << "\tsending entry for removal " <<  entry_to_remove << std::endl;
   
   if (send_all(sock, entry_to_remove.data(), name_len) < 0) {
     std::cerr << "Failed to send Name of " << entry_to_remove << " to be removed" << std::endl;
-    return 1; 
+    return 0; 
   }
   
-  return 0;
+  return 1;
 }
 
 
