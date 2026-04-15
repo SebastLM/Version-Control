@@ -43,11 +43,11 @@ int commit_action(int new_socket) {
         break;
       
       case Action::AddFile:
-        result = recv_file(new_socket, 0);
+        result = handle_op(new_socket, 0);
         break;
       
       case Action::AddDir:
-        result = recv_file(new_socket, 1);
+        result = handle_op(new_socket, 1);
         break;
       
       case Action::EndCommit:
@@ -59,9 +59,11 @@ int commit_action(int new_socket) {
         break;
     }
     
-    if (result == 1) {
+    if (result == -1) {
       std::cout << "WARNING: Undefined behaviour, error in line **" << line << "** of stage file " << std::endl 
-                  << "consider manualy fixing the line" << std::endl;
+                  << "consider manualy fixing the line.\n" 
+                  << "There is a chance that its trying to overwrite a system file"  
+                  << std::endl;
     }
 
   }
