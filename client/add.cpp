@@ -364,12 +364,6 @@ int add(std::vector<std::string> files_to_commit) {
 
   // add or change the new specified files
   for (std::string file : files_to_commit) {
-    /*
-      TODO: need to allow to input directory names as well
-      TODO: need to make a .ignore file 
-      TODO: NEED to make sure that users dont add a file for commiting that is already in stage file
-         - for that, will simply need to load the stage to the vector and then verify its existence there as well as if the hash changed or not
-    */
     if (file == ".") {
       add_dot(project_root_path, where_called, old_index, stage_lines);
       if (where_called == project_root_path)

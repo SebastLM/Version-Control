@@ -74,25 +74,21 @@ int commit_action(int new_socket) {
 
 
 int main  () {
-   int port = 47195 , new_socket;
-  struct sockaddr_in address;
-  int addrlen = sizeof(address);
-  int val = 1;
+  int port = 47195 , new_socket;
 
   ssize_t server_socket = socket(AF_INET, SOCK_STREAM, 0);
-  if (server_socket == -1 ) {
+  if (server_socket < 0) {
     perror("socket set up failed");
     exit(EXIT_FAILURE);
   }
   
-  if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &(val), sizeof(int)) <  0) {
-    /*
-      SOL_REUSEPORT allows for multiple listeing sockets, the kernel then balances the incoming connections
-     */
+  int opt = 1;
+  if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &(opt), sizeof(opt)) <  0) {
     perror("setsockopt");
     exit(EXIT_FAILURE);
   }
 
+  struct sockaddr_in address;
   address.sin_family = AF_INET; // address format set to host and port name
   address.sin_addr.s_addr = INADDR_ANY; // address to listen on all network interfaces 
   address.sin_port = htons(port);
@@ -103,7 +99,6 @@ int main  () {
     exit(EXIT_FAILURE);
   }
   
-
   /* 
   listen:
     mark the socket as a passive socket, with the second arg being the maximum length to which the the queue of connections may grow
@@ -113,7 +108,7 @@ int main  () {
     exit(EXIT_FAILURE);
   }
   
-
+  int addrlen = sizeof(address);
   // accepted sockets can be many while listening tend to be only one
   if ((new_socket = accept(server_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
     perror("error accepting connections");

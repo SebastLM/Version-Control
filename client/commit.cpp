@@ -127,10 +127,6 @@ int commit(int sock) {
     
   std::unordered_map<std::string, Action> commit_plan;
 
-  /*
-      TODO: for now the commits only work if done from the base project dir, change that
-  */
-
   // obtain the current working dir from where the executable is called
   fs::path c_work_dir = fs::current_path();
   std::string project_name = c_work_dir.generic_string();
