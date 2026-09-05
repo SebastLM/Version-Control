@@ -203,10 +203,8 @@ void add_file(const std::string& project_root_path,
     // else it will just create a new entry
     old_index[to_change] = e;
   }
-  // file empty -> dont add
-  if (hash != "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-    // replace old line if existed, else append to end
-    change_stage_file_line(to_change, type, hash, add_rm, stage_lines); 
+  // replace old line if existed, else append to end
+  change_stage_file_line(to_change, type, hash, add_rm, stage_lines); 
 }
 
 
