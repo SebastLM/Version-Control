@@ -55,15 +55,17 @@ int recv_file(int sock, bool is_dir) {
   recv_all(sock, name.data(), name_len);
 
   // making sure i am not overwriting an actual system file
-  fs::perms perm = fs::status(name).permissions();
-  if ((perm & fs::perms::owner_write) == fs::perms::none) {
-    std::cout << "File is a read only system file. Aborting..." << std::endl;
-    return 0;
+  std::error_code ec;
+  if (fs::exists(name, ec)) {
+    fs::perms perm = fs::status(name, ec).permissions();
+    if ((perm & fs::perms::owner_write) == fs::perms::none) {
+      std::cout << "File is a read only system file. Aborting..." << std::endl;
+      return 0;
+    }
   }
 
   if (is_dir) {
     fs::create_directory(name);
-    fs::permissions(name, fs::perms::owner_write, fs::perm_options::remove);
     return 1;
   }
   std::cout << "file name: |||" << name << "|||" << std::endl;

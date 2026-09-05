@@ -115,11 +115,20 @@ int send_file(int sock, const std::string& file_to_send, bool is_dir) {
 
   char file_buf[MAX_CHUNK_SIZE];
   int i = 1; 
-  while (file) {
-
+  while (true) {
     file.read(file_buf, sizeof(file_buf));
+    std::streamsize bytes_read = file.gcount();
+    
+    if (bytes_read <= 0) {
+      break;
+    }
+
     std::cout << "\t\tsending chuck: " << i << " (" << file_to_send << ")" << std::endl;
-    send_all(sock, file_buf, file.gcount());
+    if (send_all(sock, file_buf, bytes_read) < 0) {
+      std::cerr << "Failed to send chunk " << i << " of " << file_to_send << std::endl;
+      file.close();
+      return 0;
+    }
     i++;
   }
 
