@@ -108,42 +108,41 @@ int main  () {
     exit(EXIT_FAILURE);
   }
   
-  int addrlen = sizeof(address);
-  // accepted sockets can be many while listening tend to be only one
-  if ((new_socket = accept(server_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen))<0) {
-    perror("error accepting connections");
-    close(server_socket);
-    exit(EXIT_FAILURE);
-  }
 
   while (1) {
+    int addrlen = sizeof(address);
+    if ((new_socket = accept(server_socket, (struct sockaddr *)&address, (socklen_t*)&addrlen)) < 0) {
+      perror("error accepting connections");
+      continue;
+    }
+
     uint8_t protocol_tmp;
-    recv_all(new_socket, &protocol_tmp, sizeof(protocol_tmp));
+    if (recv_all(new_socket, &protocol_tmp, sizeof(protocol_tmp)) <= 0) {
+        close(new_socket);
+        continue;
+    }
 
     MsgType protocol = static_cast<MsgType>(protocol_tmp);
     switch (protocol) {
 
       case MsgType::CREATE_PROJECT:
         printf("still on work\n");
+        close(new_socket);
         break;
 
-
-
-      // in case the remote peer wants to commit 
-      case MsgType::COMMIT_FILES:
-      { 
+      case MsgType::COMMIT_FILES: 
         commit_action(new_socket);
-
         close(new_socket); 
         break;
-      }
 
       case MsgType::PULL_FILES:
         printf("still on work\n");
         break;
 
       default:
-        throw std::runtime_error("message type provided not know");
+        std::cerr << "Unknown Message type received" << std::endl;
+        close(new_socket);
+        break;
     }
   }
 }

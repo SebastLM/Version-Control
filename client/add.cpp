@@ -125,13 +125,15 @@ void change_stage_file_line(std::string to_change,
   std::string new_line = to_change + "|" + type + "|" + file_hash + "|" + add_rm;
 
   for (std::string& line : stage_lines){
-    // if we find line that contains our value
-    if (line.rfind(to_change, 0) == 0) {
+    std::string line_path = line.substr(0, line.find('|'));
+    
+    // Check for an exact match
+    if (line_path == to_change) {
       line = new_line;
       return;
-    // in case a similar subdirectorie is found
-    } else if (line.rfind(to_change_path, 0) == 0)
+    } else if (line.rfind(to_change_path, 0) == 0) {
       line_to_insert = line_num;
+    }
     line_num++;
   }
 
@@ -262,7 +264,8 @@ int add_dot(const std::string& project_root_path,
         if (change_index[path].is_dir)
             type = "dir";
         
-        add_file(project_root_path, change_index[path].hash, path, old_index, "1", type, stage_lines);
+        std::string absolute_file_path = project_root_path + "/" + path;
+        add_file(project_root_path, change_index[path].hash, absolute_file_path, old_index, "1", type, stage_lines);
         // change the index file
         // as well and make sure the old_index is now visited so when trying to find the deleted ones 
         old_index[path] = change_index[path];
@@ -281,7 +284,8 @@ int add_dot(const std::string& project_root_path,
       if (change_index[path].is_dir)
           type = "dir";
 
-      add_file(project_root_path, change_index[path].hash, path, old_index, "1", type, stage_lines);
+      std::string absolute_file_path = project_root_path + "/" + path;
+      add_file(project_root_path, change_index[path].hash, absolute_file_path, old_index, "1", type, stage_lines);
       old_index[path] = change_index[path];
       old_index[path].visited = true;
     }
