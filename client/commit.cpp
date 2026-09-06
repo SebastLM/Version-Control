@@ -12,11 +12,7 @@
 #include "send_all_recv_all.h"
 
 
-
-
 namespace fs = std::filesystem;
-
-
 
 
 
@@ -34,18 +30,22 @@ void commit_action(std::string stage_path, std::unordered_map<std::string, Actio
     if (line.empty())
       continue;
 
-    // path|type|hash
+    // path|type|hash|add_rm
     auto p1 = line.find('|');
     auto p2 = line.find('|', p1 + 1);
+    auto p3 = line.find('|', p2 + 1);
+
+    if (p1 == std::string::npos || p2 == std::string::npos || p3 == std::string::npos) {
+      continue; // Skip malformed lines
+    }
 
     std::string path = line.substr(0, p1);
     std::string type = line.substr(p1 + 1, p2 - p1 - 1);
-    std::string add_rm = line.substr(p2 + 1);
+    std::string hash = line.substr(p2 + 1, p3 - p2 - 1);
+    std::string add_rm = line.substr(p3 + 1);
 
-    
     Action a = Action::Remove;
     if (add_rm == "1") {
-
       if (type == "dir")
         a = Action::AddDir;
       else
@@ -55,14 +55,6 @@ void commit_action(std::string stage_path, std::unordered_map<std::string, Actio
     std::string path_only = path;
     obtain_path(path_only);
 
-
-    /*
-    TODO: still need to handle better the file we are trying to commit for removal being part of an already removed(in the server side) dir
-    for this in the add loop for stage_file, if a dir is to be deleted simply ignore the rest of the iteration through the loop
-    */
-
-    // in case of removal no need to worry about the hash value since the output is the same
-    // no replacement is needed
     if (commit_plan[path_only] != Action::Remove)
       commit_plan[path] = a;
   }
@@ -129,25 +121,21 @@ int commit(int sock) {
 
   // obtain the current working dir from where the executable is called
   fs::path c_work_dir = fs::current_path();
-  std::string project_name = c_work_dir.generic_string();
-  file_name(project_name);
-
-  std::string stage_path = "/active_projects/" + project_name + "/stage";
+  std::string project_root_path = c_work_dir.generic_string();
+  
+  std::string stage_path = project_root_path + "/.stage";
   
   const char* stage_path_tmp = stage_path.c_str();
   int res = access(stage_path_tmp, R_OK);
   if (res < 0) {
-    // in case the file doesnt exist
     if (errno == ENOENT) {
-      perror("project doesnt exist");
+      std::cerr << "project doesnt exist: No such file or directory" << std::endl;
       return EXIT_FAILURE;
     }
   }
 
-  // avoid repetitions in files sent for adding 
   commit_action(stage_path, commit_plan);
 
-  // commit the file to the remote repo
   commit_remote(commit_plan, sock);
   
   Action end_signal = Action::EndCommit;
@@ -157,22 +145,14 @@ int commit(int sock) {
   }
   std::cout << "\nCommit finished." << std::endl;
 
-
-  // pass the socket set up here and create the auxiliar functions in file_sender for the different actions, like remove, ... 
-  // call file sender to handle stage file and commit files to server  
-
   // clearing stage file after commit
   std::ofstream file(stage_path, std::ios::trunc);
   if (!file.is_open()) {
       std::cout << "WARNING: failed to open file for cleaning commit stage" << std::endl;
-      std::cout << "consider manualy cleaning the stage file to avoid further errors: " + stage_path << std::endl;
       return -1;
   }
   file.close();
 
-  /*
-  TODO: later handle sending messages
-  */
   return 0;
 }
 
