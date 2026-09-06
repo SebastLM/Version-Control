@@ -158,11 +158,12 @@ int recv_removed_entry(int sock) {
   std::error_code er;
 
   fs::remove_all(path_rm, er);
-  if (er)
+  if (er) {
     std::cerr << "failed to remove " << path_rm << ": " << er.message()
               << std::endl;
-
-  return 0;
+    return 0;
+  }
+  return 1;
 }
 
 /*

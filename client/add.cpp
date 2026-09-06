@@ -229,10 +229,11 @@ int add_dot(const std::string &project_root_path,
   // loop for handling new files or changed ones
   for (const auto &[path, entry] : change_index) {
 
-    if (old_index[path].visited) {
-      if (old_index[path].hash != change_index[path].hash) {
+    auto old_it = old_index.find(path);
+    bool was_visited = (old_it != old_index.end()) && old_it->second.visited;
 
-        // add the commit object to the vector in case of a modified file
+    if (was_visited) {
+      if (old_index[path].hash != change_index[path].hash) {
         std::string type = "file";
         if (change_index[path].is_dir)
           type = "dir";
@@ -240,22 +241,13 @@ int add_dot(const std::string &project_root_path,
         std::string absolute_file_path = project_root_path + "/" + path;
         add_file(project_root_path, change_index[path].hash, absolute_file_path,
                  old_index, "1", type, stage_lines);
-        // change the index file
-        // as well and make sure the old_index is now visited so when trying to
-        // find the deleted ones
         old_index[path] = change_index[path];
         old_index[path].visited = true;
       }
       continue;
     }
-    // returns iterator to path
-    auto it = old_index.find(path);
 
-    // if the returned iterator value doesnt exist, meaning we have a new entry
-    // in the project(file/dir)
-    if (it == old_index.end()) {
-
-      // add the commit object to stage for it to be commited later
+    if (old_it == old_index.end()) {
       std::string type = "file";
       if (change_index[path].is_dir)
         type = "dir";

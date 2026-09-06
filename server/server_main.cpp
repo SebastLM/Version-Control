@@ -1,4 +1,5 @@
 #include <arpa/inet.h>
+#include <filesystem>
 #include <iostream>
 #include <netinet/in.h>
 #include <stdexcept>
@@ -10,6 +11,8 @@
 #include "protocol.h"
 #include "send_all_recv_all.h"
 
+namespace fs = std::filesystem;
+
 /*
   TODO: implement threading
 */
@@ -18,9 +21,9 @@ int commit_action(int new_socket) {
 
   int line = 0;
   while (1) {
-
+    std::cerr << "DEBUG: waiting for action, line " << line << std::endl;
     Action action;
-    if (recv_all(new_socket, &action, sizeof(action)) <= 0) {
+    if (recv_all(new_socket, &action, sizeof(action)) < 0) {
       std::cerr << "Fatal: Connection lost." << std::endl;
       return -1;
     }
@@ -57,13 +60,68 @@ int commit_action(int new_socket) {
       break;
     }
 
-    if (result == 1) {
+    if (!result) {
       std::cout << "WARNING: Undefined behaviour, error in line **" << line
                 << "** of stage file " << std::endl
                 << "consider manualy fixing the line" << std::endl;
     }
   }
   return 0;
+}
+
+// receives the project name
+// runs the commit
+void handle_commit(int new_socket) {
+
+  uint32_t name_len_net;
+  if (recv_all(new_socket, &name_len_net, sizeof(name_len_net)) < 0) {
+    std::cerr << "Failed to receive project name length." << std::endl;
+    return;
+  }
+
+  uint32_t proj_name_len = ntohl(name_len_net);
+  std::string project_name(proj_name_len, '\0');
+
+  if (proj_name_len > 0 &&
+      recv_all(new_socket, project_name.data(), proj_name_len) < 0) {
+    std::cerr << "Failed to receive project name." << std::endl;
+    return;
+  }
+
+  std::string original_cwd = fs::current_path().string();
+
+  if (!project_name.empty()) {
+    std::error_code ec;
+
+    fs::create_directories(project_name, ec);
+    if (ec) {
+      std::cerr << "Failed to create project directory '" << project_name
+                << "': " << ec.message() << std::endl;
+      return;
+    }
+
+    fs::current_path(project_name, ec);
+    if (ec) {
+      std::cerr << "Failed to enter project directory '" << project_name
+                << "': " << ec.message() << std::endl;
+      return;
+    }
+  }
+
+  std::cerr << "DEBUG: committing into project: " << project_name << std::endl;
+
+  try {
+    commit_action(new_socket);
+  } catch (const std::exception &e) {
+    std::cerr << "Commit failed: " << e.what() << std::endl;
+  }
+
+  std::error_code restore_ec;
+  fs::current_path(original_cwd, restore_ec);
+  if (restore_ec) {
+    std::cerr << "WARNING: failed to restore original working directory: "
+              << restore_ec.message() << std::endl;
+  }
 }
 
 int main() {
@@ -76,8 +134,8 @@ int main() {
   }
 
   int opt = 1;
-  if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &(opt),
-                 sizeof(opt)) < 0) {
+  if (setsockopt(server_socket, SOL_SOCKET, SO_REUSEADDR, &(opt), sizeof(opt)) <
+      0) {
     perror("setsockopt");
     exit(EXIT_FAILURE);
   }
@@ -113,7 +171,7 @@ int main() {
     }
 
     uint8_t protocol_tmp;
-    if (recv_all(new_socket, &protocol_tmp, sizeof(protocol_tmp)) <= 0) {
+    if (recv_all(new_socket, &protocol_tmp, sizeof(protocol_tmp)) < 0) {
       close(new_socket);
       continue;
     }
@@ -127,11 +185,7 @@ int main() {
       break;
 
     case MsgType::COMMIT_FILES:
-      try {
-        commit_action(new_socket);
-      } catch (const std::exception &e) {
-        std::cerr << "Commit failed: " << e.what() << std::endl;
-      }
+      handle_commit(new_socket);
       close(new_socket);
       break;
 
